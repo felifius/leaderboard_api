@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leaderboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: Arial; max-width: 800px; margin: 50px auto; }
+        .top-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+        #Login,
+        #AddGame {
+            border: 0;
+            border-radius: 999px;
+            padding: 10px 18px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+        }
+        #Login {
+            background: linear-gradient(135deg, #1d4ed8, #2563eb);
+            color: #fff;
+            box-shadow: 0 8px 20px rgba(37, 99, 235, 0.25);
+        }
+        #AddGame {
+            background: #eef2ff;
+            color: #1e3a8a;
+            border: 1px solid #c7d2fe;
+        }
+        #Login:hover,
+        #AddGame:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14);
+        }
+        #Login:active,
+        #AddGame:active {
+            transform: translateY(0);
+            box-shadow: none;
+        }
+        form { border: 1px solid #ccc; padding: 20px; border-radius: 5px; }
+        select { padding: 8px; margin: 5px 0; width: 200px; }
+        button { padding: 8px 15px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        #leaderboard { margin-top: 30px; border: 1px solid #ddd; padding: 20px; }
+        #chartWrap {
+            position: relative;
+            height: 420px;
+            margin-top: 18px;
+        }
+    </style>
+</head>
+<body>
+<div class="top-actions">
+    <button id="Login" onclick='window.location.href="/google"'>Login</button>
+    <button id="AddGame" onclick='window.location.href="/add-game"'>Add Game</button>
+</div>
+
+<h1>🎮 Game Leaderboard</h1>
+
+<form id="scoreForm">
+    <h2>Search Score</h2>
+    <label for="gameName">Game Name:</label>
+    <select name="gameName" id="quantidade" onchange="document.getElementById('scoreForm').requestSubmit()">
+        <option value="" disabled selected>Selecione...</option>
+        <% games.forEach(function(game) { %>
+            <option value="<%= game %>"><%= game %></option>
+        <% }); %>
+    </select>
+    <span id="formMessage" style="margin-left: 10px; color: green;"></span>
+</form>
+
+<div id="leaderboard">
+    <h2 id="gameTitle">Select a game to view leaderboard</h2>
+    <div id="chartWrap" style="display: none;">
+        <canvas id="leaderboardChart"></canvas>
+    </div>
+    <div id="gameData" style="color: #666;">Aguardando dados...</div>
+    <div id ="playersData"></div>
+</div>
+
+<script>
+    let eventSource;
+    let leaderboardChart;
+    let lastChartSignature = '';
+
+    function connectToLeaderboard(gameName) {
+        if (eventSource) {
+            eventSource.close();
+        }
+
+        const url = `/leaderboard?gameName=${encodeURIComponent(gameName)}`;
+        eventSource = new EventSource(url);
+
+        eventSource.onmessage = function (event) {
+        const data = JSON.parse(event.data);
+        const button = document.getElementById("Login");
+        const chartWrap = document.getElementById('chartWrap');
+        const gameTitle = document.getElementById('gameTitle');
+
+        gameTitle.textContent = data.game ? `Leaderboard for ${data.game}` : 'Select a game to view leaderboard';
+
+        
+        if(data.authenticated) {
+            button.textContent = "Logout";
+            button.onclick = () => window.location.href = "/logout";
+        } else {
+            button.textContent = "Login";
+            button.onclick = () => window.location.href = "/google";
+        }
+
+        if (data.leaderboard && data.leaderboard.length > 0) {
+            const sortedRows = data.leaderboard
+                .map((player, index) => ({
+                    player,
+                    score: Number(data.score[index])
+                }))
+                .sort((a, b) => b.score - a.score);
+
+            const chartSignature = JSON.stringify({
+                game: data.game,
+                rows: sortedRows
+            });
+
+            if (chartSignature === lastChartSignature) {
+                return;
+            }
+
+            lastChartSignature = chartSignature;
+
+            chartWrap.style.display = 'block';
+
+            const labels = sortedRows.map((row) => row.player);
+            const values = sortedRows.map((row) => row.score);
+
+            if (leaderboardChart) {
+                leaderboardChart.destroy();
+            }
+
+            leaderboardChart = new Chart(document.getElementById('leaderboardChart'), {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [{
+                        label: 'Score',
+                        data: values,
+                        backgroundColor: '#2563eb',
+                        borderRadius: 8,
+                        borderSkipped: false
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0
+                            }
+                        },
+                        y: {
+                            ticks: {
+                                autoSkip: false
+                            }
+                        }
+                    }
+                }
+            });
+            document.getElementById('gameData').innerHTML = '';
+        } else {
+            chartWrap.style.display = 'none';
+            if (leaderboardChart) {
+                leaderboardChart.destroy();
+                leaderboardChart = null;
+            }
+            lastChartSignature = '';
+        }
+        }
+    }
+
+    const scoreForm = document.getElementById('scoreForm');
+    const select = document.getElementById('quantidade');
+
+    scoreForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        if (!select.value) {
+            return;
+        }
+
+        connectToLeaderboard(select.value);
+    });
+
+    if (select.options.length > 1) {
+        select.selectedIndex = 1;
+        connectToLeaderboard(select.value);
+    } else {
+        connectToLeaderboard('Game 1');
+    }
+
+</script>
+</body>
+</html>

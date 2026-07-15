@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        body { font-family: Arial; max-width: 800px; margin: 50px auto; }
+        .top-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+        #Login,
+        #AddGame {
+            border: 0;
+            border-radius: 999px;
+            padding: 10px 18px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+        }
+        #Login {
+            background: linear-gradient(135deg, #1d4ed8, #2563eb);
+            color: #fff;
+            box-shadow: 0 8px 20px rgba(37, 99, 235, 0.25);
+        }
+        #AddGame {
+            background: #eef2ff;
+            color: #1e3a8a;
+            border: 1px solid #c7d2fe;
+        }
+        #Login:hover,
+        #AddGame:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14);
+        }
+        #Login:active,
+        #AddGame:active {
+            transform: translateY(0);
+            box-shadow: none;
+        }
+        form { border: 1px solid #ccc; padding: 20px; border-radius: 5px; }
+        select { padding: 8px; margin: 5px 0; width: 200px; }
+        button { padding: 8px 15px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        #leaderboard { margin-top: 30px; border: 1px solid #ddd; padding: 20px; }
+        #chartWrap {
+            position: relative;
+            height: 420px;
+            margin-top: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div class="top-actions">
+    <button id="Login" onclick='window.location.href="/google"'>Login</button>
+    <button id="AddGame" onclick='window.location.href="/"'>Home</button>
+    </div>
+
+    <h1>🎮 Add Score</h1>
+
+
+    <form action="/add-score" method="POST">
+        <label for="gameName">Game Name:</label>
+        <input type="text" id="gameName" name="gameName" required>
+        <br><br>
+        <label for="score">Score:</label>
+        <input type="number" id="score" name="score" required>
+        <br><br>
+        <button type="submit">Add Score</button>
+    </form>
+</body>
+</html>

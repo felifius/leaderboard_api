@@ -1,26 +1,48 @@
+import passport from "passport";
 
-import appwriteClient from "../appwrite.js";
-import { OAuthProvider } from "node-appwrite";
+export const login = passport.authenticate('google', {scope: ['email', 'profile']});
 
-export async function loginUser(req, res) {
-    const { account } = await appwriteClient("admin");
+export const googleCallback = passport.authenticate('google', {
+    failureRedirect: '/fail',
+    successRedirect: '/success'
+});
 
-    const redirectUrl = await account.createOAuth2Token({
-        provider: OAuthProvider.Google,
-        success: 'http://localhost:5173/sucess',
-        failure: 'http://localhost:5173/fail'
+export function checkAuth(req, res) {
+    if (req.user) {
+        return res.json({
+            authenticated: true,
+            user: {
+                id: req.user.id,
+                displayName: req.user.displayName,
+                email: req.user.emails?.[0]?.value,
+                photo: req.user.photos?.[0]?.value,
+            }
+        });
+    } else {
+        return res.json({ authenticated: false });
+    }
+}
+
+export function success(req, res) {
+    if (!req.user) {
+        return res.status(401).json({ error: "Não autenticado" });
+    }
+    
+    const user = req.user;
+    
+    res.redirect(`/`);
+}
+
+export function logout(req, res) {
+    req.logout((err) => {
+        if (err) {
+            return res.status(500).json({ error: "Erro ao fazer logout" });
+        }
+        res.clearCookie('connect.sid');
+        res.json({ success: true, message: "Logout realizado" });
     });
-
-    return res.redirect(redirectUrl);
-}
-export async function user(req, res) {
-    res.send("User route");
 }
 
-export async function sucess(req, res) {
-    res.send("Successfully logged in");
-}
-
-export async function fail(req, res) {
+export function fail(req, res) {
     res.send("Failed to log in");
 }

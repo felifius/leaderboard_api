@@ -1,11 +1,14 @@
 import express from "express";
-import { loginUser, user, sucess, fail } from "../controllers/authController.js";
+import { login, googleCallback, checkAuth, success, logout, fail } from "../controllers/authController.js";
+
 
 const router = express.Router();
 
-router.get("/login", loginUser);
-router.get("/user", user);
-router.get("/sucess", sucess);
+router.get("/auth/check", checkAuth);
+router.get("/google", login);
+router.get("/google/callback", googleCallback);
+router.get("/success", success);
+router.get("/logout", logout);
 router.get("/fail", fail);
 
 export default router;
